@@ -1,6 +1,4 @@
 import pandas as pd
-import re
-
 
 def padronizar_nomes_colunas(df: pd.DataFrame) -> pd.DataFrame:
     df.columns = (
