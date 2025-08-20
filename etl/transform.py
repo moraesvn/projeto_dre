@@ -37,3 +37,22 @@ def remover_coluna_total(df: pd.DataFrame) -> pd.DataFrame:
     if "total" in df.columns:
         df = df.drop(columns=["total"])
     return df
+
+
+def marcar_estornos_impostos(df: pd.DataFrame, coluna: str = "descricao") -> pd.DataFrame:
+    """
+    Renomeia a 2ª ocorrência em diante de ICMS, PIS e COFINS, ipi, iss como '... ESTORNO'.
+    """
+    impostos = {"ICMS", "PIS", "COFINS", "IPI", "ISS"}
+    contadores = {}
+
+    def renomear(valor):
+        valor = str(valor).strip()
+        if valor in impostos:
+            contadores[valor] = contadores.get(valor, 0) + 1
+            if contadores[valor] > 1:
+                return "Estorno de " + valor
+        return valor
+
+    df[coluna] = df[coluna].apply(renomear)
+    return df
