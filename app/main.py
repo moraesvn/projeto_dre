@@ -7,6 +7,8 @@ from ui import mostrar_filtros, Filtros
 # -------------------------------------------------
 st.set_page_config(page_title="DRE Insights", page_icon="📊", layout="wide")
 
+#st.sidebar.image("gp_logo.jpg")
+
 st.title("📊 DRE – Navegação e Filtros Globais")
 
 # -------------------------------------------------
@@ -21,7 +23,7 @@ financeiro_page = st.Page(
 
 despesas_page = st.Page(
     "despesas_comercial.py",
-    title="Despesas Operacionais",
+    title="Comercial e Operacional",
     icon="📦",
 )
 
@@ -33,7 +35,7 @@ personalizado_page = st.Page(
 
 # Você pode agrupar páginas em seções, se quiser (ex.: "Visões")
 nav = st.navigation({
-    "Visões": [financeiro_page, despesas_page, personalizado_page],
+    "Visualizações": [financeiro_page, despesas_page, personalizado_page],
 })
 
 # -------------------------------------------------
