@@ -1,5 +1,7 @@
 import streamlit as st
 from dataclasses import dataclass
+from db import get_kpi_base
+from kpi import montar_kpis
 
 #st.set_page_config(page_title="Núcleo Financeiro", page_icon="💹", layout="wide")
 
@@ -11,18 +13,29 @@ if not filtros:
     st.info("Use a barra lateral no menu principal para selecionar os filtros.")
     st.stop()
 
+
+df_base = get_kpi_base(filtros.empresas, filtros.anos, filtros.mes_ini, filtros.mes_fim)
+if df_base.empty:
+    st.info("Nenhum dado para os filtros selecionados.")
+    st.stop()
+
+st.session_state["kpis_financeiro"] = montar_kpis(df_base)
 # -------------------------------------------------------------------
-# Estrutura visual dos 6 cards (sem cálculos por enquanto)
-# - Mostra placeholders até conectarmos os cálculos/queries
-# - Quando os KPIs estiverem prontos, basta preencher o dicionário 'kpis'
+# Estrutura visual dos 5 cards (sem cálculos por enquanto)
+# KPIs em destaque (cards grandes no topo):
+# 1) Receita Líquida (ano e YTD, % crescimento)
+# 2) Margem Bruta %
+# 3) Margem Operacional %
+# 4) Margem Líquida %
+# 5) EBITDA
 # -------------------------------------------------------------------
 @dataclass
 class KPI:
     label: str
-    valor: float | None = None
-    delta_mom: float | None = None  # variação mês contra mês (%)
-    delta_yoy: float | None = None  # variação ano contra ano (%)
-    sublabel: str | None = None     # ex.: Margem %, % da RL
+    valor: float | None = None          # valor principal (R$ ou %)
+    ytd: float | None = None            # para RL: YTD em R$
+    crescimento_yoy: float | None = None  # variação % YoY
+    margem_pct: float | None = None     # para EBITDA (margem EBITDA %), se aplicável
 
 
 def fmt_val(v: float | None) -> str:
@@ -31,73 +44,74 @@ def fmt_val(v: float | None) -> str:
     return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
-def fmt_pct(p: float | None) -> str:
+def fmt_pct(p: float | None, casas: int = 1) -> str:
     if p is None:
         return "—"
-    return f"{p:.1f}%"
+    return f"{p:.{casas}f}%"
 
 
-# Placeholder de KPIs (valores serão conectados depois)
+# Placeholders dos KPIs (serão preenchidos depois via st.session_state["kpis_financeiro"])
 kpis = {
-    "rl": KPI("Receita Líquida", valor=None, delta_mom=None, delta_yoy=None),
-    "lb": KPI("Lucro Bruto", valor=None, delta_mom=None, delta_yoy=None, sublabel="Margem Bruta: —"),
-    "ebitda": KPI("EBITDA", valor=None, delta_mom=None, delta_yoy=None, sublabel="Margem EBITDA: —"),
-    "desp_op": KPI("Despesas Operacionais", valor=None, delta_mom=None, delta_yoy=None, sublabel="% da RL: —"),
-    "cmv": KPI("CMV", valor=None, delta_mom=None, delta_yoy=None, sublabel="% da RL: —"),
-    "resultado": KPI("Resultado", valor=None, delta_mom=None, delta_yoy=None, sublabel="Margem Líquida: —"),
+    # Receita Líquida — Ano/YTD e crescimento YoY
+    "receita_liquida": KPI("Receita Líquida", valor=None, ytd=None, crescimento_yoy=None),
+
+    # Margens (%)
+    "margem_bruta_pct": KPI("Margem Bruta %", valor=None, crescimento_yoy=None),
+    "margem_operacional_pct": KPI("Margem Operacional %", valor=None, crescimento_yoy=None),
+    "margem_liquida_pct": KPI("Margem Líquida %", valor=None, crescimento_yoy=None),
+
+    # EBITDA — valor em R$ + margem % e crescimento YoY
+    "ebitda": KPI("EBITDA", valor=None, margem_pct=None, crescimento_yoy=None),
 }
 
-# Caso já exista algo calculado no session_state, usa no lugar dos placeholders
+# Se já existir algo calculado no session_state, usa
 kpis_state = st.session_state.get("kpis_financeiro")
 if isinstance(kpis_state, dict):
     for key, obj in kpis.items():
-        if key in kpis_state:
-            # Espera dict com chaves: valor, delta_mom, delta_yoy, sublabel (opcional)
-            data = kpis_state[key]
-            obj.valor = data.get("valor", obj.valor)
-            obj.delta_mom = data.get("delta_mom", obj.delta_mom)
-            obj.delta_yoy = data.get("delta_yoy", obj.delta_yoy)
-            obj.sublabel = data.get("sublabel", obj.sublabel)
+        data = kpis_state.get(key, {})
+        obj.valor = data.get("valor", obj.valor)
+        obj.ytd = data.get("ytd", obj.ytd)
+        obj.crescimento_yoy = data.get("crescimento_yoy", obj.crescimento_yoy)
+        obj.margem_pct = data.get("margem_pct", obj.margem_pct)
 
 # -------------------------------------------------------------------
-# Layout: 2 linhas x 3 colunas (cards)
+# Layout visual
+# Linha 1: 2 cards grandes – Receita Líquida (esquerda) e EBITDA (direita)
+# Linha 2: 3 cards – Margem Bruta %, Margem Operacional %, Margem Líquida %
 # -------------------------------------------------------------------
-st.header("💹 Núcleo Financeiro")
+st.header("💹 Visão estratégica")
 
-row1 = st.columns(3)
-with row1[0]:
-    st.metric(kpis["rl"].label, fmt_val(kpis["rl"].valor), fmt_pct(kpis["rl"].delta_mom))
-    st.caption(f"YoY: {fmt_pct(kpis["rl"].delta_yoy)}")
+# Linha 1: 2 cards grandes
+c1, c2 = st.columns((2, 1))  # Receita Líquida ocupa mais espaço
+with c1:
+    rl = kpis["receita_liquida"]
+    st.metric(rl.label, fmt_val(rl.valor), fmt_pct(rl.crescimento_yoy))
+    st.caption(f"YTD: {fmt_val(rl.ytd)}")
+    st.caption(f"Crescimento YoY: {fmt_pct(rl.crescimento_yoy)}")
 
-with row1[1]:
-    st.metric(kpis["lb"].label, fmt_val(kpis["lb"].valor), fmt_pct(kpis["lb"].delta_mom))
-    st.caption((kpis["lb"].sublabel or "").replace("%", "%"))
-    st.caption(f"YoY: {fmt_pct(kpis["lb"].delta_yoy)}")
-
-with row1[2]:
-    st.metric(kpis["ebitda"].label, fmt_val(kpis["ebitda"].valor), fmt_pct(kpis["ebitda"].delta_mom))
-    st.caption((kpis["ebitda"].sublabel or "").replace("%", "%"))
-    st.caption(f"YoY: {fmt_pct(kpis["ebitda"].delta_yoy)}")
-
-row2 = st.columns(3)
-with row2[0]:
-    st.metric(kpis["desp_op"].label, fmt_val(kpis["desp_op"].valor), fmt_pct(kpis["desp_op"].delta_mom))
-    st.caption((kpis["desp_op"].sublabel or "").replace("%", "%"))
-    st.caption(f"YoY: {fmt_pct(kpis["desp_op"].delta_yoy)}")
-
-with row2[1]:
-    st.metric(kpis["cmv"].label, fmt_val(kpis["cmv"].valor), fmt_pct(kpis["cmv"].delta_mom))
-    st.caption((kpis["cmv"].sublabel or "").replace("%", "%"))
-    st.caption(f"YoY: {fmt_pct(kpis["cmv"].delta_yoy)}")
-
-with row2[2]:
-    st.metric(kpis["resultado"].label, fmt_val(kpis["resultado"].valor), fmt_pct(kpis["resultado"].delta_mom))
-    st.caption((kpis["resultado"].sublabel or "").replace("%", "%"))
-    st.caption(f"YoY: {fmt_pct(kpis["resultado"].delta_yoy)}")
+with c2:
+    ebt = kpis["ebitda"]
+    st.metric(ebt.label, fmt_val(ebt.valor), fmt_pct(ebt.crescimento_yoy))
+    st.caption(f"Margem EBITDA: {fmt_pct(ebt.margem_pct)}")
+    st.caption(f"YoY: {fmt_pct(ebt.crescimento_yoy)}")
 
 st.divider()
 
-st.info(
-    "Estrutura visual pronta. Quando os cálculos estiverem disponíveis, "
-    "preencha st.session_state['kpis_financeiro'] com os valores/deltas e os cards serão atualizados."
-)
+# Linha 2: 3 cards menores (margens)
+r2c1, r2c2, r2c3 = st.columns(3)
+with r2c1:
+    mb = kpis["margem_bruta_pct"]
+    st.metric(mb.label, fmt_pct(mb.valor))
+    st.caption(f"YoY: {fmt_pct(mb.crescimento_yoy)}")
+
+with r2c2:
+    mo = kpis["margem_operacional_pct"]
+    st.metric(mo.label, fmt_pct(mo.valor))
+    st.caption(f"YoY: {fmt_pct(mo.crescimento_yoy)}")
+
+with r2c3:
+    ml = kpis["margem_liquida_pct"]
+    st.metric(ml.label, fmt_pct(ml.valor))
+    st.caption(f"YoY: {fmt_pct(ml.crescimento_yoy)}")
+
+st.divider()

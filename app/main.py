@@ -5,11 +5,11 @@ from ui import mostrar_filtros, Filtros
 # -------------------------------------------------
 # Config geral do app (apenas no entrypoint)
 # -------------------------------------------------
-st.set_page_config(page_title="DRE Insights", page_icon="📊", layout="wide")
+st.set_page_config(page_title="Executivo", page_icon="📊", layout="wide")
 
 #st.sidebar.image("gp_logo.jpg")
 
-st.title("📊 DRE – Navegação e Filtros Globais")
+#st.title("📊 DRE – Navegação e Filtros Globais")
 
 # -------------------------------------------------
 # Navegação por páginas (novo modelo Page + navigation)
