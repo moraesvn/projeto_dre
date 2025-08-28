@@ -1,0 +1,12 @@
+# Desenvolvimento e notebooks
+ipykernel==6.30.1
+jupyter_client==8.6.3
+jupyter_core==5.8.1
+pywin32==311; sys_platform == "win32"
+
+# Outros pacotes auxiliares que você já tinha mas não são necessários em produção
+matplotlib-inline==0.1.7
+Pygments==2.19.2
+traitlets==5.14.3
+psutil==7.0.0
+watchdog==6.0.0
