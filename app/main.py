@@ -22,7 +22,7 @@ financeiro_page = st.Page(
 )
 
 despesas_page = st.Page(
-    "despesas_comercial.py",
+    "comercial_operacional.py",
     title="Comercial e Operacional",
     icon="📦",
 )
