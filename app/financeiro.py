@@ -115,3 +115,8 @@ with r2c3:
     st.caption(f"YoY: {fmt_pct(ml.crescimento_yoy)}")
 
 st.divider()
+
+from chat_ui import render_chat
+from ai.service import ask_cfo
+
+render_chat("financeiro", filtros, on_ask=ask_cfo)
