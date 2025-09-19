@@ -8,7 +8,7 @@ load_dotenv()
 
 # Configurações padrão do agente CFO
 MODEL_NAME = "gpt-5-mini"   # modelo padrão
-TEMPERATURE = 0.4           # respostas objetivas
+TEMPERATURE = 1           # respostas objetivas
 
 
 def get_api_key() -> str:
