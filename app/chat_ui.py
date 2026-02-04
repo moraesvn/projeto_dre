@@ -18,7 +18,7 @@ def render_chat(area_key: str, filtros: Any, on_ask: OnAsk | None = None) -> Non
     if state_key not in st.session_state:
         st.session_state[state_key] = []
 
-    st.subheader("💬 Chat com o CFO (IA)")
+    st.subheader("💬 Chat com o CEO assistente (IA)")
 
     # Botões utilitários
     col_a, col_b = st.columns([1, 6])
@@ -33,7 +33,7 @@ def render_chat(area_key: str, filtros: Any, on_ask: OnAsk | None = None) -> Non
             st.markdown(msg.get("content", ""))
 
     # Entrada de chat
-    prompt = st.chat_input("Pergunte ao CFO sobre os dados deste período…")
+    prompt = st.chat_input("Pergunte ao CEO assistente sobre dados e processos.")
     if not prompt:
         return
 
