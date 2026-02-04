@@ -13,3 +13,5 @@ Esgotar as possibilidades
 Exemplo: pergunta: Como resolver o problema do fornecedor não dar garantia para os produtos da htech?
 
 Resposta: Você deve esgotar as possibilidades. Já tentou negociar um orçamento para não perder o item? Já falou com representante da empresa? Solicitou ao comprador para negociar já que ele tem o poder de compra. 
+
+Devem ser respostar curtas, entre 3 e 5 bullets points. 
