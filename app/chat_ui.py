@@ -1,9 +1,9 @@
 from __future__ import annotations
-from typing import Callable, Any
+from typing import Callable, Any, Iterator, Union
 import streamlit as st
 
-# Tipo de callback opcional: recebe (pergunta:str, filtros:Any) -> str (resposta do agente)
-OnAsk = Callable[[str, Any], str]
+# Callback: (pergunta, filtros) -> str ou Iterator[str] (streaming)
+OnAsk = Callable[[str, Any], Union[str, Iterator[str]]]
 
 
 def render_chat(area_key: str, filtros: Any, on_ask: OnAsk | None = None) -> None:
@@ -11,8 +11,7 @@ def render_chat(area_key: str, filtros: Any, on_ask: OnAsk | None = None) -> Non
     Renderiza um chat simples com histórico.
     - `area_key` diferencia o histórico por página (ex.: "financeiro").
     - `filtros` é repassado ao agente/callback.
-    - `on_ask` (opcional) permite injetar uma função que chama o agente.
-      Se não for passado, tenta usar `ai.generate_insights` como fallback.
+    - `on_ask` (opcional) pode retornar str ou um iterador de chunks para streaming.
     """
     state_key = f"chat_{area_key}_messages"
     if state_key not in st.session_state:
@@ -42,13 +41,29 @@ def render_chat(area_key: str, filtros: Any, on_ask: OnAsk | None = None) -> Non
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # Resposta do agente
+    # Resposta do agente (streaming ou string)
     try:
         if on_ask is not None:
-            resposta = on_ask(prompt, filtros)
+            result = on_ask(prompt, filtros)
+        else:
+            result = ""
     except Exception as e:  # noqa: BLE001
-        resposta = f"⚠️ IA indisponível: {e}"
+        result = f"⚠️ IA indisponível: {e}"
+
+    # Exibe em tempo real: se for iterador, usa write_stream; senão markdown
+    with st.chat_message("assistant"):
+        if isinstance(result, str):
+            resposta = result
+            st.markdown(resposta)
+        else:
+            parts: list[str] = []
+
+            def stream_and_collect() -> Iterator[str]:
+                for chunk in result:
+                    parts.append(chunk)
+                    yield chunk
+
+            st.write_stream(stream_and_collect())
+            resposta = "".join(parts)
 
     st.session_state[state_key].append({"role": "assistant", "content": resposta})
-    with st.chat_message("assistant"):
-        st.markdown(resposta)
