@@ -32,7 +32,7 @@ def render_chat(area_key: str, filtros: Any, on_ask: OnAsk | None = None) -> Non
             st.markdown(msg.get("content", ""))
 
     # Entrada de chat
-    prompt = st.chat_input("Pergunte ao CEO assistente sobre dados e processos.")
+    prompt = st.chat_input("Pergunte ao assistente sobre dados e processos.")
     if not prompt:
         return
 
