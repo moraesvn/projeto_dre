@@ -36,6 +36,23 @@ def _sum(df: pd.DataFrame, desc: str) -> float:
     return float(df.loc[m, "valor"].sum())
 
 
+def kpi_receita_bruta(frames: PeriodFrames) -> dict:
+    RB = "RECEITA BRUTA"
+    valor_periodo = _sum(frames.curr_period, RB)
+    valor_ytd = _sum(frames.curr_ytd, RB)
+    valor_periodo_prev = _sum(frames.prev_period, RB)
+
+    crescimento_yoy = None
+    if valor_periodo_prev and abs(valor_periodo_prev) > 1e-9:
+        crescimento_yoy = (valor_periodo - valor_periodo_prev) / abs(valor_periodo_prev) * 100
+
+    return {
+        "valor": valor_periodo,
+        "ytd": valor_ytd,
+        "crescimento_yoy": crescimento_yoy,
+    }
+
+
 def kpi_receita_liquida(frames: PeriodFrames) -> dict:
     RL = "RECEITA LIQUIDA"
     valor_periodo = _sum(frames.curr_period, RL)
@@ -53,68 +70,9 @@ def kpi_receita_liquida(frames: PeriodFrames) -> dict:
     }
 
 
-def kpi_margem_bruta(frames: PeriodFrames) -> dict:
-    RL = "RECEITA LIQUIDA"; LB = "LUCRO BRUTO"
-    rl = _sum(frames.curr_period, RL)
-    lb = _sum(frames.curr_period, LB)
-    mb_pct = (lb / rl * 100) if rl else None
-
-    rl_prev = _sum(frames.prev_period, RL)
-    lb_prev = _sum(frames.prev_period, LB)
-    mb_prev_pct = (lb_prev / rl_prev * 100) if rl_prev else None
-
-    delta_yoy = (mb_pct - mb_prev_pct) if (mb_pct is not None and mb_prev_pct is not None) else None
-    return {"valor": mb_pct, "crescimento_yoy": delta_yoy}
-
-
-def kpi_margem_operacional(frames: PeriodFrames) -> dict:
-    RL = "RECEITA LIQUIDA"; LB = "LUCRO BRUTO"; DESP = "DESPESAS OPERACIONAIS"
-    rl = _sum(frames.curr_period, RL)
-    op = _sum(frames.curr_period, LB) - _sum(frames.curr_period, DESP)
-    op_pct = (op / rl * 100) if rl else None
-
-    rl_prev = _sum(frames.prev_period, RL)
-    op_prev = _sum(frames.prev_period, LB) - _sum(frames.prev_period, DESP)
-    op_prev_pct = (op_prev / rl_prev * 100) if rl_prev else None
-
-    delta_yoy = (op_pct - op_prev_pct) if (op_pct is not None and op_prev_pct is not None) else None
-    return {"valor": op_pct, "crescimento_yoy": delta_yoy}
-
-
-def kpi_margem_liquida(frames: PeriodFrames) -> dict:
-    RL = "RECEITA LIQUIDA"; RES = "RESULTADO LIQUIDO"
-    rl = _sum(frames.curr_period, RL)
-    res = _sum(frames.curr_period, RES)
-    ml_pct = (res / rl * 100) if rl and res != 0 else (0.0 if rl and res == 0 else None)
-
-    rl_prev = _sum(frames.prev_period, RL)
-    res_prev = _sum(frames.prev_period, RES)
-    ml_prev_pct = (res_prev / rl_prev * 100) if rl_prev and res_prev != 0 else (0.0 if rl_prev and res_prev == 0 else None)
-
-    delta_yoy = (ml_pct - ml_prev_pct) if (ml_pct is not None and ml_prev_pct is not None) else None
-    return {"valor": ml_pct, "crescimento_yoy": delta_yoy}
-
-
-def kpi_ebitda(frames: PeriodFrames) -> dict:
-    RL = "RECEITA LIQUIDA"; LB = "LUCRO BRUTO"; DESP = "DESPESAS OPERACIONAIS"
-    rl = _sum(frames.curr_period, RL)
-    ebitda_val = _sum(frames.curr_period, LB) - _sum(frames.curr_period, DESP)
-    margem_pct = (ebitda_val / rl * 100) if rl else None
-
-    ebitda_prev = _sum(frames.prev_period, LB) - _sum(frames.prev_period, DESP)
-    crescimento_yoy = None
-    if abs(ebitda_prev) > 1e-9:
-        crescimento_yoy = (ebitda_val - ebitda_prev) / abs(ebitda_prev) * 100
-
-    return {"valor": ebitda_val, "margem_pct": margem_pct, "crescimento_yoy": crescimento_yoy}
-
-
 def montar_kpis(df_base: pd.DataFrame) -> dict:
     frames = split_periods(df_base)
     return {
+        "receita_bruta": kpi_receita_bruta(frames),
         "receita_liquida": kpi_receita_liquida(frames),
-        "margem_bruta_pct": kpi_margem_bruta(frames),
-        "margem_operacional_pct": kpi_margem_operacional(frames),
-        "margem_liquida_pct": kpi_margem_liquida(frames),
-        "ebitda": kpi_ebitda(frames),
     }
