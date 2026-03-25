@@ -1,3 +1,4 @@
+import math
 import streamlit as st
 import altair as alt
 from dataclasses import dataclass
@@ -76,25 +77,37 @@ df_desp_rb = serie_desp_op_sobre_receita_bruta_pct(df_base)
 if df_desp_rb.empty or df_desp_rb["pct"].notna().sum() == 0:
     st.caption("Sem pontos válidos para o indicador no intervalo e anos selecionados.")
 else:
+    df_plot = df_desp_rb.dropna(subset=["pct"]).copy()
     ordem = df_desp_rb["periodo"].tolist()
-    chart = (
-        alt.Chart(df_desp_rb.dropna(subset=["pct"]))
-        .mark_line(point=True, interpolate="monotone")
-        .encode(
-            x=alt.X("periodo:N", sort=ordem, title="Período"),
-            y=alt.Y(
-                "pct:Q",
-                title="Despesa operacional / Receita bruta (%)",
-                scale=alt.Scale(zero=True),
-                axis=alt.Axis(format="d", tickMinStep=1),
-            ),
-            tooltip=[
-                "periodo",
-                alt.Tooltip("pct:Q", title="%", format=".2f"),
-            ],
-        )
-        .properties(height=320)
+    pct_max = float(df_plot["pct"].max())
+    y_max = max(math.ceil(pct_max), 1)
+    if y_max == pct_max:
+        y_max += 1
+    df_plot["pct_lbl"] = df_plot["pct"].map(lambda v: f"{v:.1f}%")
+
+    enc_x = alt.X("periodo:N", sort=ordem, title="Período")
+    enc_y = alt.Y(
+        "pct:Q",
+        title="Despesa operacional / Receita bruta",
+        scale=alt.Scale(domain=[0, y_max], nice=False),
+        axis=alt.Axis(
+            tickMinStep=1,
+            labelExpr="datum.value + '%'",
+        ),
     )
+
+    base = alt.Chart(df_plot).encode(enc_x, enc_y, tooltip=["periodo", alt.Tooltip("pct:Q", title="%", format=".2f")])
+    line = base.mark_line(interpolate="monotone")
+    pts = base.mark_point(size=60, filled=True)
+    labels = base.mark_text(
+        align="center",
+        baseline="bottom",
+        dy=-8,
+        fontSize=11,
+        fontWeight=500,
+    ).encode(text=alt.Text("pct_lbl:N"))
+
+    chart = (line + pts + labels).properties(height=320).interactive()
     st.altair_chart(chart, use_container_width=True)
 
 st.divider()
