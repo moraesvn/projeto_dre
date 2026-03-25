@@ -63,14 +63,12 @@ c1, c2 = st.columns(2)
 with c1:
     rb = kpis["receita_bruta"]
     st.metric(rb.label, fmt_val(rb.valor), fmt_pct(rb.crescimento_yoy))
-    st.caption(f"YTD: {fmt_val(rb.ytd)}")
-    st.caption(f"Crescimento YoY: {fmt_pct(rb.crescimento_yoy)}")
+    
 
 with c2:
     rl = kpis["receita_liquida"]
     st.metric(rl.label, fmt_val(rl.valor), fmt_pct(rl.crescimento_yoy))
-    st.caption(f"YTD: {fmt_val(rl.ytd)}")
-    st.caption(f"Crescimento YoY: {fmt_pct(rl.crescimento_yoy)}")
+    
 
 st.divider()
 
