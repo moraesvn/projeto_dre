@@ -70,6 +70,8 @@ with c2:
     rl = kpis["receita_liquida"]
     st.metric(rl.label, fmt_val(rl.valor))
 
+st.divider()
+
 st.subheader("% Custo fixo sobre Faturamento")
 df_desp_rb = serie_desp_op_sobre_receita_bruta_pct(df_base)
 if df_desp_rb.empty or df_desp_rb["pct"].notna().sum() == 0:
