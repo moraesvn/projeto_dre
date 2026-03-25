@@ -1,7 +1,8 @@
 import streamlit as st
+import altair as alt
 from dataclasses import dataclass
 from db import get_kpi_base
-from kpi import montar_kpis
+from kpi import montar_kpis, serie_desp_op_sobre_receita_bruta_pct
 
 #st.set_page_config(page_title="Núcleo Financeiro", page_icon="💹", layout="wide")
 
@@ -68,7 +69,32 @@ with c1:
 with c2:
     rl = kpis["receita_liquida"]
     st.metric(rl.label, fmt_val(rl.valor))
-    
+
+st.subheader("% Custo fixo sobre Faturamento")
+df_desp_rb = serie_desp_op_sobre_receita_bruta_pct(df_base)
+if df_desp_rb.empty or df_desp_rb["pct"].notna().sum() == 0:
+    st.caption("Sem pontos válidos para o indicador no intervalo e anos selecionados.")
+else:
+    ordem = df_desp_rb["periodo"].tolist()
+    chart = (
+        alt.Chart(df_desp_rb.dropna(subset=["pct"]))
+        .mark_line(point=True, interpolate="monotone")
+        .encode(
+            x=alt.X("periodo:N", sort=ordem, title="Período"),
+            y=alt.Y(
+                "pct:Q",
+                title="Despesa operacional / Receita bruta (%)",
+                scale=alt.Scale(zero=True),
+                axis=alt.Axis(format=".1f"),
+            ),
+            tooltip=[
+                "periodo",
+                alt.Tooltip("pct:Q", title="%", format=".2f"),
+            ],
+        )
+        .properties(height=320)
+    )
+    st.altair_chart(chart, use_container_width=True)
 
 st.divider()
 

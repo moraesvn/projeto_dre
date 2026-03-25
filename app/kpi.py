@@ -1,6 +1,13 @@
 import pandas as pd
 from dataclasses import dataclass
 
+RB = "RECEITA BRUTA"
+DESP_OP = "DESPESAS OPERACIONAIS"
+_MESES_ABREV = {
+    1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr", 5: "Mai", 6: "Jun",
+    7: "Jul", 8: "Ago", 9: "Set", 10: "Out", 11: "Nov", 12: "Dez",
+}
+
 @dataclass
 class PeriodFrames:
     curr_period: pd.DataFrame  # mes_ini..mes_fim do ano ref
@@ -49,7 +56,6 @@ def _sum(df: pd.DataFrame, desc: str) -> float:
 
 
 def kpi_receita_bruta(frames: PeriodFrames) -> dict:
-    RB = "RECEITA BRUTA"
     valor_periodo = _sum(frames.curr_period, RB)
     valor_ytd = _sum(frames.curr_ytd, RB)
     valor_periodo_prev = _sum(frames.prev_period, RB)
@@ -88,3 +94,40 @@ def montar_kpis(df_base: pd.DataFrame) -> dict:
         "receita_bruta": kpi_receita_bruta(frames),
         "receita_liquida": kpi_receita_liquida(frames),
     }
+
+
+def serie_desp_op_sobre_receita_bruta_pct(df_base: pd.DataFrame) -> pd.DataFrame:
+    """
+    Uma linha por (ano, mês) no intervalo de filtros: % = despesa operacional / receita bruta * 100.
+    Colunas: ano, mes_num, periodo (rótulo eixo X), pct.
+    """
+    cols = ["ano", "mes_num", "periodo", "pct"]
+    if df_base.empty:
+        return pd.DataFrame(columns=cols)
+    mes_ini = int(df_base.attrs.get("mes_ini", 1))
+    mes_fim = int(df_base.attrs.get("mes_fim", 12))
+    d = df_base[
+        df_base["descricao"].isin([RB, DESP_OP])
+        & (df_base["mes_num"] >= mes_ini)
+        & (df_base["mes_num"] <= mes_fim)
+    ]
+    if d.empty:
+        return pd.DataFrame(columns=cols)
+    wide = (
+        d.pivot_table(index=["ano", "mes_num"], columns="descricao", values="valor", aggfunc="sum")
+        .reset_index()
+    )
+    for col in (RB, DESP_OP):
+        if col not in wide.columns:
+            wide[col] = 0.0
+    rb = wide[RB].astype(float)
+    desp = wide[DESP_OP].astype(float)
+    ok = rb.abs() > 1e-9
+    pct = pd.Series(float("nan"), index=wide.index, dtype=float)
+    pct.loc[ok] = (desp[ok] / rb[ok]) * 100.0
+    wide["pct"] = pct
+    wide["periodo"] = [
+        f"{_MESES_ABREV[int(m)]}/{int(a)}" for a, m in zip(wide["ano"], wide["mes_num"])
+    ]
+    out = wide.sort_values(["ano", "mes_num"])[cols].reset_index(drop=True)
+    return out
