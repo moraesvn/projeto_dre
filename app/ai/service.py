@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Iterator
 from pathlib import Path
 
 from . import config
@@ -28,33 +28,33 @@ def _default_context(filtros: Any) -> str:
     )
 
 
-def ask_cfo(pergunta: str, filtros: Any) -> str:
-    """Interface única para o chat do app.
-    - Tenta usar o agente Agno se existir.
-    - Caso contrário, usa chamada direta ao modelo com o system prompt.
+def ask_cfo(pergunta: str, filtros: Any) -> Iterator[str]:
+    """Interface única para o chat do app; retorna um iterador de chunks para streaming.
+    - Tenta usar o agente Agno se existir (entrega a resposta em um único chunk).
+    - Caso contrário, usa chamada direta ao modelo com stream=True.
     """
     agent = make_cfo_agent()
 
-    # Se tivermos um agente Agno funcional, usamos ele
+    # Se tivermos um agente Agno funcional, usamos ele (um único yield com a resposta completa)
     if agent is not None:
         try:
-            # A API exata pode variar; manteremos simples:
-            # prompt = f"{_default_context(filtros)}\n\nPergunta: {pergunta}"
             prompt = f"{_default_context(filtros)}\n\n{pergunta}"
             result = agent.run(prompt)  # type: ignore[attr-defined]
-            return str(result)
-        except Exception as e:  # fallback para LLM direto
+            yield str(result)
+            return
+        except Exception:
             pass
 
-    # Fallback direto ao LLM (OpenAI) usando o system prompt
+    # Fallback direto ao LLM (OpenAI) com streaming
     system_prompt = load_system_prompt()
     api_key = config.get_api_key()
     if OpenAI is None:
-        return "⚠️ IA indisponível: biblioteca 'openai' não encontrada no ambiente."
+        yield "⚠️ IA indisponível: biblioteca 'openai' não encontrada no ambiente."
+        return
 
     client = OpenAI(api_key=api_key)
     try:
-        resp = client.chat.completions.create(
+        stream = client.chat.completions.create(
             model=config.get_model_name(),
             temperature=config.get_temperature(),
             messages=[
@@ -62,7 +62,10 @@ def ask_cfo(pergunta: str, filtros: Any) -> str:
                 {"role": "user", "content": _default_context(filtros)},
                 {"role": "user", "content": pergunta},
             ],
+            stream=True,
         )
-        return resp.choices[0].message.content or ""
+        for chunk in stream:
+            if chunk.choices and chunk.choices[0].delta.content is not None:
+                yield chunk.choices[0].delta.content
     except Exception as e:
-        return f"⚠️ IA indisponível: {e}"
+        yield f"⚠️ IA indisponível: {e}"
