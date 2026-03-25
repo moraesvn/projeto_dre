@@ -62,12 +62,12 @@ st.header("💹 Visão estratégica")
 c1, c2 = st.columns(2)
 with c1:
     rb = kpis["receita_bruta"]
-    st.metric(rb.label, fmt_val(rb.valor), fmt_pct(rb.crescimento_yoy))
+    st.metric(rb.label, fmt_val(rb.valor))
     
 
 with c2:
     rl = kpis["receita_liquida"]
-    st.metric(rl.label, fmt_val(rl.valor), fmt_pct(rl.crescimento_yoy))
+    st.metric(rl.label, fmt_val(rl.valor))
     
 
 st.divider()
