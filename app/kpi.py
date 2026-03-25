@@ -98,7 +98,8 @@ def montar_kpis(df_base: pd.DataFrame) -> dict:
 
 def serie_desp_op_sobre_receita_bruta_pct(df_base: pd.DataFrame) -> pd.DataFrame:
     """
-    Uma linha por (ano, mês) no intervalo de filtros: % = despesa operacional / receita bruta * 100.
+    Uma linha por (ano, mês) nos anos do filtro e entre mes_ini..mes_fim.
+    % = despesa operacional / receita bruta * 100.
     Colunas: ano, mes_num, periodo (rótulo eixo X), pct.
     """
     cols = ["ano", "mes_num", "periodo", "pct"]
@@ -106,8 +107,14 @@ def serie_desp_op_sobre_receita_bruta_pct(df_base: pd.DataFrame) -> pd.DataFrame
         return pd.DataFrame(columns=cols)
     mes_ini = int(df_base.attrs.get("mes_ini", 1))
     mes_fim = int(df_base.attrs.get("mes_fim", 12))
+    anos_sel = df_base.attrs.get("anos_sel")
+    if anos_sel is None:
+        anos_sel = [int(df_base.attrs.get("ref_year"))]
+    else:
+        anos_sel = sorted({int(x) for x in anos_sel})
     d = df_base[
-        df_base["descricao"].isin([RB, DESP_OP])
+        df_base["ano"].isin(anos_sel)
+        & df_base["descricao"].isin([RB, DESP_OP])
         & (df_base["mes_num"] >= mes_ini)
         & (df_base["mes_num"] <= mes_fim)
     ]

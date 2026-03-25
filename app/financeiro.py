@@ -86,7 +86,7 @@ else:
                 "pct:Q",
                 title="Despesa operacional / Receita bruta (%)",
                 scale=alt.Scale(zero=True),
-                axis=alt.Axis(format=".1f"),
+                axis=alt.Axis(format="d", tickMinStep=1),
             ),
             tooltip=[
                 "periodo",
