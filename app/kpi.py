@@ -142,8 +142,8 @@ def serie_desp_op_sobre_receita_bruta_pct(df_base: pd.DataFrame) -> pd.DataFrame
 
 def medias_mensais_periodo(df_base: pd.DataFrame) -> dict[str, float | None]:
     """
-    Média dos valores mensais (cada ano–mês do filtro conta como um ponto)
-    para despesa operacional, receita bruta e receita líquida.
+    - desp_op: média dos percentuais mensais (despesa operacional / receita bruta × 100).
+    - receita_bruta / receita_liquida: média dos valores mensais em R$.
     """
     empty = {"desp_op": None, "receita_bruta": None, "receita_liquida": None}
     if df_base.empty:
@@ -163,9 +163,13 @@ def medias_mensais_periodo(df_base: pd.DataFrame) -> dict[str, float | None]:
     ]
     if d.empty:
         return empty
-    out: dict[str, float | None] = {}
+    out: dict[str, float | None] = {**empty}
+
+    serie_pct = serie_desp_op_sobre_receita_bruta_pct(df_base)
+    pcts = serie_pct["pct"].dropna()
+    out["desp_op"] = float(pcts.mean()) if not pcts.empty else None
+
     for desc, key in [
-        (DESP_OP, "desp_op"),
         (RB, "receita_bruta"),
         (RL, "receita_liquida"),
     ]:

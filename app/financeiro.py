@@ -117,9 +117,9 @@ st.subheader("Médias mensais no período", text_alignment="center")
 mc1, mc2, mc3 = st.columns(3)
 with mc1:
     st.metric(
-        "Despesa operacional",
-        fmt_val(medias["desp_op"]),
-        help="Média dos valores mensais de despesa operacional no intervalo e anos filtrados.",
+        "Média % Custo fixo",
+        fmt_pct(medias["desp_op"]),
+        help="Média dos percentuais mensais (despesa operacional ÷ receita bruta) no período filtrado.",
     )
 with mc2:
     st.metric(
