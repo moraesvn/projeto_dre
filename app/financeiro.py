@@ -3,7 +3,7 @@ import streamlit as st
 import altair as alt
 from dataclasses import dataclass
 from db import get_kpi_base
-from kpi import montar_kpis, serie_desp_op_sobre_receita_bruta_pct
+from kpi import montar_kpis, serie_desp_op_sobre_receita_bruta_pct, medias_mensais_periodo
 
 #st.set_page_config(page_title="Núcleo Financeiro", page_icon="💹", layout="wide")
 
@@ -111,6 +111,28 @@ else:
 
     chart = (line + pts + labels).properties(height=320).interactive()
     st.altair_chart(chart, use_container_width=True)
+
+medias = medias_mensais_periodo(df_base)
+st.subheader("Médias mensais no período", text_alignment="center")
+mc1, mc2, mc3 = st.columns(3)
+with mc1:
+    st.metric(
+        "Despesa operacional",
+        fmt_val(medias["desp_op"]),
+        help="Média dos valores mensais de despesa operacional no intervalo e anos filtrados.",
+    )
+with mc2:
+    st.metric(
+        "Receita bruta",
+        fmt_val(medias["receita_bruta"]),
+        help="Média dos valores mensais de receita bruta no intervalo e anos filtrados.",
+    )
+with mc3:
+    st.metric(
+        "Receita líquida",
+        fmt_val(medias["receita_liquida"]),
+        help="Média dos valores mensais de receita líquida no intervalo e anos filtrados.",
+    )
 
 st.divider()
 

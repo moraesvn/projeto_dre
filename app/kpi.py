@@ -2,6 +2,7 @@ import pandas as pd
 from dataclasses import dataclass
 
 RB = "RECEITA BRUTA"
+RL = "RECEITA LIQUIDA"
 DESP_OP = "DESPESAS OPERACIONAIS"
 _MESES_ABREV = {
     1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr", 5: "Mai", 6: "Jun",
@@ -72,7 +73,6 @@ def kpi_receita_bruta(frames: PeriodFrames) -> dict:
 
 
 def kpi_receita_liquida(frames: PeriodFrames) -> dict:
-    RL = "RECEITA LIQUIDA"
     valor_periodo = _sum(frames.curr_period, RL)
     valor_ytd = _sum(frames.curr_ytd, RL)
     valor_periodo_prev = _sum(frames.prev_period, RL)
@@ -137,4 +137,38 @@ def serie_desp_op_sobre_receita_bruta_pct(df_base: pd.DataFrame) -> pd.DataFrame
         f"{_MESES_ABREV[int(m)]}/{int(a)}" for a, m in zip(wide["ano"], wide["mes_num"])
     ]
     out = wide.sort_values(["ano", "mes_num"])[cols].reset_index(drop=True)
+    return out
+
+
+def medias_mensais_periodo(df_base: pd.DataFrame) -> dict[str, float | None]:
+    """
+    Média dos valores mensais (cada ano–mês do filtro conta como um ponto)
+    para despesa operacional, receita bruta e receita líquida.
+    """
+    empty = {"desp_op": None, "receita_bruta": None, "receita_liquida": None}
+    if df_base.empty:
+        return empty
+    mes_ini = int(df_base.attrs.get("mes_ini", 1))
+    mes_fim = int(df_base.attrs.get("mes_fim", 12))
+    anos_sel = df_base.attrs.get("anos_sel")
+    if anos_sel is None:
+        anos_sel = [int(df_base.attrs.get("ref_year"))]
+    else:
+        anos_sel = sorted({int(x) for x in anos_sel})
+    d = df_base[
+        df_base["ano"].isin(anos_sel)
+        & df_base["descricao"].isin([DESP_OP, RB, RL])
+        & (df_base["mes_num"] >= mes_ini)
+        & (df_base["mes_num"] <= mes_fim)
+    ]
+    if d.empty:
+        return empty
+    out: dict[str, float | None] = {}
+    for desc, key in [
+        (DESP_OP, "desp_op"),
+        (RB, "receita_bruta"),
+        (RL, "receita_liquida"),
+    ]:
+        vals = pd.to_numeric(d.loc[d["descricao"] == desc, "valor"], errors="coerce").dropna()
+        out[key] = float(vals.mean()) if not vals.empty else None
     return out
