@@ -72,7 +72,7 @@ with c2:
 
 st.divider()
 
-st.subheader("% Custo fixo sobre Faturamento")
+st.subheader("% Custo fixo / Faturamento", text_alignment="center", divider="blue")
 df_desp_rb = serie_desp_op_sobre_receita_bruta_pct(df_base)
 if df_desp_rb.empty or df_desp_rb["pct"].notna().sum() == 0:
     st.caption("Sem pontos válidos para o indicador no intervalo e anos selecionados.")
@@ -88,7 +88,7 @@ else:
     enc_x = alt.X("periodo:N", sort=ordem, title="Período")
     enc_y = alt.Y(
         "pct:Q",
-        title="Despesa operacional / Receita bruta",
+        title="% Custo fixo",
         scale=alt.Scale(domain=[0, y_max], nice=False),
         axis=alt.Axis(
             tickMinStep=1,
