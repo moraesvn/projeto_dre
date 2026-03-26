@@ -1,7 +1,0 @@
-[theme.light]
-primaryColor = "forestGreen"
-backgroundColor = "#ffffff"
-
-[theme.dark]
-primaryColor = "royalBlue"
-backgroundColor = "#0e1117"
