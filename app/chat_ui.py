@@ -24,7 +24,7 @@ def render_chat(area_key: str, filtros: Any, on_ask: OnAsk | None = None) -> Non
     with col_a:
         if st.button("Limpar conversa", use_container_width=True):
             st.session_state[state_key] = []
-            st.experimental_rerun()
+            st.rerun()
 
     # Exibe histórico
     for msg in st.session_state[state_key]:
@@ -43,27 +43,34 @@ def render_chat(area_key: str, filtros: Any, on_ask: OnAsk | None = None) -> Non
 
     # Resposta do agente (streaming ou string)
     try:
+        raw: str | Iterator[str]
         if on_ask is not None:
-            result = on_ask(prompt, filtros)
+            raw = on_ask(prompt, filtros)
         else:
-            result = ""
+            raw = ""
     except Exception as e:  # noqa: BLE001
-        result = f"⚠️ IA indisponível: {e}"
+        raw = f"⚠️ IA indisponível: {e}"
 
-    # Exibe em tempo real: se for iterador, usa write_stream; senão markdown
     with st.chat_message("assistant"):
-        if isinstance(result, str):
-            resposta = result
+        if isinstance(raw, str):
+            resposta = raw
             st.markdown(resposta)
         else:
-            parts: list[str] = []
+            it = iter(raw)
+            with st.spinner("Analisando os dados…"):
+                try:
+                    first = next(it)
+                except StopIteration:
+                    first = None
+            if first is None:
+                resposta = ""
+                st.caption("Sem resposta.")
+            else:
+                def stream_all() -> Iterator[str]:
+                    yield first
+                    yield from it
 
-            def stream_and_collect() -> Iterator[str]:
-                for chunk in result:
-                    parts.append(chunk)
-                    yield chunk
-
-            st.write_stream(stream_and_collect())
-            resposta = "".join(parts)
+                streamed = st.write_stream(stream_all())
+                resposta = streamed if isinstance(streamed, str) else "".join(str(x) for x in streamed)
 
     st.session_state[state_key].append({"role": "assistant", "content": resposta})

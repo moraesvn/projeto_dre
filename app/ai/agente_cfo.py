@@ -20,26 +20,23 @@ def load_system_prompt() -> str:
     return PROMPT_PATH.read_text(encoding="utf-8").strip()
 
 
-def make_cfo_agent() -> Any:
-    """Cria o agente CFO.
-    - Se Agno estiver instalado, retorna uma instância do agente Agno.
-    - Se não estiver, retorna None; o service fará fallback para chamada direta ao LLM.
-    """
+def _create_cfo_agent() -> Any:
+    """Instancia o agente Agno (sem cache). Retorna None se Agno indisponível ou falhar."""
     system_prompt = load_system_prompt()
 
     if Agent is None:
         return None
 
-    # ⚠️ Place-holder: a assinatura real do Agent pode mudar conforme a versão do Agno.
-    # Vamos manter os parâmetros essenciais aqui e ajustar quando instalar.
     try:
-        agent = Agent(
+        return Agent(
             instructions=system_prompt,
             model=config.get_model_name(),
             temperature=config.get_temperature(),
-            # tools=[]  # adicionaremos na próxima etapa (SQL read-only, KPIs canônicos)
         )
-        return agent
-    except Exception as e:  # pragma: no cover
-        # Se a criação falhar (ex.: diferença de API), o service vai usar fallback direto no LLM
+    except Exception:  # pragma: no cover
         return None
+
+
+def make_cfo_agent() -> Any:
+    """Cria o agente CFO (nova instância a cada chamada). Para o app Streamlit, prefira o cache em `service`."""
+    return _create_cfo_agent()

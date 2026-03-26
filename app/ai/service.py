@@ -1,15 +1,30 @@
 from __future__ import annotations
-from typing import Any, Dict, List, Iterator
-from pathlib import Path
+from typing import Any, Iterator
+
+import streamlit as st
 
 from . import config
-from .agente_cfo import make_cfo_agent, load_system_prompt
+from .agente_cfo import _create_cfo_agent, load_system_prompt
 
 # Fallback: usamos OpenAI direto se Agno/Agent não estiver disponível
 try:  # pragma: no cover
     from openai import OpenAI  # type: ignore
 except Exception:
     OpenAI = None  # type: ignore
+
+
+@st.cache_resource(show_spinner=False)
+def _get_cached_cfo_agent() -> Any:
+    """Uma instância do agente Agno por sessão de app (evita recriar a cada mensagem)."""
+    return _create_cfo_agent()
+
+
+@st.cache_resource(show_spinner=False)
+def _get_cached_openai_client() -> Any:
+    """Cliente OpenAI reutilizado entre mensagens."""
+    if OpenAI is None:
+        return None
+    return OpenAI(api_key=config.get_api_key())
 
 
 def _default_context(filtros: Any) -> str:
@@ -30,12 +45,11 @@ def _default_context(filtros: Any) -> str:
 
 def ask_cfo(pergunta: str, filtros: Any) -> Iterator[str]:
     """Interface única para o chat do app; retorna um iterador de chunks para streaming.
-    - Tenta usar o agente Agno se existir (entrega a resposta em um único chunk).
-    - Caso contrário, usa chamada direta ao modelo com stream=True.
+    - Tenta usar o agente Agno em cache (um único chunk com a resposta completa).
+    - Caso contrário, OpenAI com stream=True e cliente em cache.
     """
-    agent = make_cfo_agent()
+    agent = _get_cached_cfo_agent()
 
-    # Se tivermos um agente Agno funcional, usamos ele (um único yield com a resposta completa)
     if agent is not None:
         try:
             prompt = f"{_default_context(filtros)}\n\n{pergunta}"
@@ -45,14 +59,16 @@ def ask_cfo(pergunta: str, filtros: Any) -> Iterator[str]:
         except Exception:
             pass
 
-    # Fallback direto ao LLM (OpenAI) com streaming
     system_prompt = load_system_prompt()
-    api_key = config.get_api_key()
     if OpenAI is None:
         yield "⚠️ IA indisponível: biblioteca 'openai' não encontrada no ambiente."
         return
 
-    client = OpenAI(api_key=api_key)
+    client = _get_cached_openai_client()
+    if client is None:
+        yield "⚠️ IA indisponível: não foi possível criar o cliente OpenAI."
+        return
+
     try:
         stream = client.chat.completions.create(
             model=config.get_model_name(),
