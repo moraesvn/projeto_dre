@@ -59,7 +59,7 @@ if isinstance(kpis_state, dict):
         obj.ytd = data.get("ytd", obj.ytd)
         obj.crescimento_yoy = data.get("crescimento_yoy", obj.crescimento_yoy)
 
-st.header("💹 Visão Financeira", text_alignment="center")
+st.subheader("💹 Visão Financeira", text_alignment="center")
 st.divider()
 
 c1, c2 = st.columns(2)
