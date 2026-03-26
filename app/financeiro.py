@@ -72,7 +72,7 @@ with c2:
 
 st.divider()
 
-st.title("% Custo fixo / Faturamento")
+st.subheader("% Custo fixo / Faturamento")
 df_desp_rb = serie_desp_op_sobre_receita_bruta_pct(df_base)
 if df_desp_rb.empty or df_desp_rb["pct"].notna().sum() == 0:
     st.caption("Sem pontos válidos para o indicador no intervalo e anos selecionados.")
