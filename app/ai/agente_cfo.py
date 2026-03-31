@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any
 
 from . import config
+from .tools import consultar_dre_sqlite
 
 try:  # pragma: no cover
     from agno.agent import Agent
@@ -44,6 +45,7 @@ def _create_cfo_agent() -> Any:
             model=model,
             instructions=system_prompt,
             markdown=True,
+            tools=[consultar_dre_sqlite],
         )
     except Exception as e:  # pragma: no cover
         _last_agent_error = f"{type(e).__name__}: {e}"
