@@ -6,6 +6,16 @@ import streamlit as st
 from .agente_cfo import _create_cfo_agent
 
 
+def _run_output_to_text(out: Any) -> str:
+    """Extrai texto de RunOutput (Agno 2.x) ou converte fallback."""
+    if out is None:
+        return ""
+    content = getattr(out, "content", None)
+    if content is not None:
+        return content if isinstance(content, str) else str(content)
+    return str(out)
+
+
 @st.cache_resource(show_spinner=False)
 def _get_cached_cfo_agent() -> Any:
     """Uma instância do agente Agno por sessão de app (evita recriar a cada mensagem)."""
@@ -35,14 +45,14 @@ def ask_cfo(pergunta: str, filtros: Any) -> Iterator[str]:
     if agent is None:
         yield (
             "⚠️ IA indisponível: o agente Agno não pôde ser criado. "
-            "Confira se o pacote `agno` está instalado, a API do exemplo (`from agno import Agent`) "
-            "é compatível com sua versão e se as variáveis do modelo (ex.: `OPENAI_API_KEY`) estão definidas."
+            "Confira `agno` e `openai` instalados, `OPENAI_API_KEY` no `.env` e se o modelo em MODEL_NAME "
+            "é suportado pela API Responses da OpenAI."
         )
         return
 
     try:
         prompt = f"{_default_context(filtros)}\n\n{pergunta}"
-        result = agent.run(prompt)  # type: ignore[attr-defined]
-        yield str(result)
+        run_out = agent.run(prompt, stream=False)  # type: ignore[attr-defined]
+        yield _run_output_to_text(run_out)
     except Exception as e:  # noqa: BLE001
         yield f"⚠️ Erro ao executar o agente: {e}"

@@ -4,12 +4,12 @@ from typing import Any
 
 from . import config
 
-# Tenta usar Agno se disponível; caso contrário, retornamos None (o service faz fallback)
 try:  # pragma: no cover
-    # OBS: API do Agno pode variar por versão. Ajustaremos quando instalar.
-    from agno import Agent  # type: ignore
-except Exception:  # ImportError ou versões antigas
-    Agent = None  # type: ignore
+    from agno.agent import Agent
+    from agno.models.openai import OpenAIResponses
+except ImportError:  # agno ou openai ausentes
+    Agent = None  # type: ignore[misc, assignment]
+    OpenAIResponses = None  # type: ignore[misc, assignment]
 
 PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "agente_cfo.md"
 
@@ -21,22 +21,27 @@ def load_system_prompt() -> str:
 
 
 def _create_cfo_agent() -> Any:
-    """Instancia o agente Agno (sem cache). Retorna None se Agno indisponível ou falhar."""
+    """Instancia o agente Agno 2.x (OpenAI via Responses API). Retorna None se indisponível ou falhar."""
     system_prompt = load_system_prompt()
 
-    if Agent is None:
+    if Agent is None or OpenAIResponses is None:
         return None
 
     try:
-        return Agent(
-            instructions=system_prompt,
-            model=config.get_model_name(),
+        model = OpenAIResponses(
+            id=config.get_model_name(),
             temperature=config.get_temperature(),
+            api_key=config.get_api_key(),
+        )
+        return Agent(
+            model=model,
+            instructions=system_prompt,
+            markdown=True,
         )
     except Exception:  # pragma: no cover
         return None
 
 
 def make_cfo_agent() -> Any:
-    """Cria o agente CFO (nova instância a cada chamada). Para o app Streamlit, prefira o cache em `service`."""
+    """Nova instância a cada chamada. No app Streamlit use o cache em `service`."""
     return _create_cfo_agent()
