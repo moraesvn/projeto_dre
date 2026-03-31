@@ -13,6 +13,9 @@ except ImportError:  # agno ou openai ausentes
 
 PROMPT_PATH = Path(__file__).resolve().parent / "prompts" / "agente_cfo.md"
 
+# Último erro ao criar o agente (para mensagem no chat; esvaziado a cada tentativa)
+_last_agent_error: str | None = None
+
 
 def load_system_prompt() -> str:
     if not PROMPT_PATH.exists():
@@ -22,9 +25,13 @@ def load_system_prompt() -> str:
 
 def _create_cfo_agent() -> Any:
     """Instancia o agente Agno 2.x (OpenAI via Responses API). Retorna None se indisponível ou falhar."""
+    global _last_agent_error
+    _last_agent_error = None
+
     system_prompt = load_system_prompt()
 
     if Agent is None or OpenAIResponses is None:
+        _last_agent_error = "Pacotes `agno` ou `openai` não importaram (instale com pip)."
         return None
 
     try:
@@ -38,7 +45,8 @@ def _create_cfo_agent() -> Any:
             instructions=system_prompt,
             markdown=True,
         )
-    except Exception:  # pragma: no cover
+    except Exception as e:  # pragma: no cover
+        _last_agent_error = f"{type(e).__name__}: {e}"
         return None
 
 

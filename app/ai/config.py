@@ -1,10 +1,14 @@
 # app/ai/config.py
 from __future__ import annotations
 import os
+from pathlib import Path
+
 from dotenv import load_dotenv
 
-# Carrega variáveis do arquivo .env para o ambiente
-load_dotenv()
+# Raiz do repositório (…/projeto_dre) — Streamlit costuma rodar com cwd em app/, então .env na raiz não seria lido só com load_dotenv()
+_PROJECT_ROOT = Path(__file__).resolve().parents[2]
+load_dotenv(_PROJECT_ROOT / ".env")
+load_dotenv()  # fallback: .env no cwd atual
 
 # Configurações padrão do agente CFO
 MODEL_NAME = "gpt-5-mini"   # modelo padrão

@@ -3,6 +3,7 @@ from typing import Any, Iterator
 
 import streamlit as st
 
+from . import agente_cfo
 from .agente_cfo import _create_cfo_agent
 
 
@@ -17,9 +18,16 @@ def _run_output_to_text(out: Any) -> str:
 
 
 @st.cache_resource(show_spinner=False)
-def _get_cached_cfo_agent() -> Any:
-    """Uma instância do agente Agno por sessão de app (evita recriar a cada mensagem)."""
+def _cached_cfo_agent_build() -> Any:
+    """Constrói o agente uma vez; em falha não mantemos `None` em cache (permite corrigir .env e tentar de novo)."""
     return _create_cfo_agent()
+
+
+def _get_cached_cfo_agent() -> Any:
+    agent = _cached_cfo_agent_build()
+    if agent is None:
+        _cached_cfo_agent_build.clear()
+    return agent
 
 
 def _default_context(filtros: Any) -> str:
@@ -43,10 +51,13 @@ def ask_cfo(pergunta: str, filtros: Any) -> Iterator[str]:
     agent = _get_cached_cfo_agent()
 
     if agent is None:
+        det = getattr(agente_cfo, "_last_agent_error", None) or ""
+        extra = f" {det}" if det else ""
         yield (
-            "⚠️ IA indisponível: o agente Agno não pôde ser criado. "
-            "Confira `agno` e `openai` instalados, `OPENAI_API_KEY` no `.env` e se o modelo em MODEL_NAME "
-            "é suportado pela API Responses da OpenAI."
+            "⚠️ IA indisponível: o agente Agno não pôde ser criado."
+            " Confira `agno` e `openai` instalados, `OPENAI_API_KEY` no `.env` na **raiz do repositório** "
+            "(mesmo nível de `app/`) e se o modelo em `MODEL_NAME` existe na API Responses da OpenAI."
+            f"{extra}"
         )
         return
 
