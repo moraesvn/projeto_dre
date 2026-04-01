@@ -39,9 +39,6 @@ def dialog_confirmar_importacao() -> None:
                 st.error(msg)
 
 
-st.header("Configurações")
-st.caption("Preferências e opções do aplicativo.")
-
 st.subheader("Importar DRE")
 st.caption("Importe o arquivo Excel do DRE; escolha empresa (SP ou SC) e o ano de referência.")
 
