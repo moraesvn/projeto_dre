@@ -33,9 +33,20 @@ personalizado_page = st.Page(
     icon="⚙️",
 )
 
+configuracoes_page = st.Page(
+    "configuracoes.py",
+    title="Configurações",
+    icon="🔧",
+)
+
 # Você pode agrupar páginas em seções, se quiser (ex.: "Visões")
 nav = st.navigation({
-    "Visualizações": [financeiro_page, despesas_page, personalizado_page],
+    "Visualizações": [
+        financeiro_page,
+        despesas_page,
+        personalizado_page,
+        configuracoes_page,
+    ],
 })
 
 # -------------------------------------------------
