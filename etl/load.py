@@ -48,3 +48,30 @@ def insert_dre_linhas(df: pd.DataFrame, db_path: Path = DB_PATH) -> None:
         conn.commit()
 
     print(f"✅ Inseridas {len(df)} linhas em {db_path}")
+
+
+def delete_dre_periodo(empresa: str, ano: int, db_path: Path = DB_PATH) -> int:
+    """Remove todas as linhas do par (empresa, ano). Retorna quantidade apagada."""
+    ano, empresa = validar_metadados(ano, empresa)
+    sql = "DELETE FROM dre_linhas WHERE empresa = ? AND ano = ?;"
+    with sqlite3.connect(db_path) as conn:
+        cur = conn.cursor()
+        cur.execute(sql, (empresa, ano))
+        conn.commit()
+        return int(cur.rowcount)
+
+
+def substituir_dre_periodo(
+    df: pd.DataFrame,
+    ano: int,
+    empresa: str,
+    db_path: Path = DB_PATH,
+) -> tuple[int, int]:
+    """
+    Valida metadados, apaga o período (empresa, ano) e insere o DataFrame.
+    Retorna (linhas_apagadas, linhas_inseridas).
+    """
+    ano, empresa = validar_metadados(ano, empresa)
+    removidas = delete_dre_periodo(empresa, ano, db_path=db_path)
+    insert_dre_linhas(df, db_path=db_path)
+    return removidas, len(df)

@@ -1,5 +1,6 @@
 import pandas as pd
 from pathlib import Path
+from typing import BinaryIO, Union
 from extract import extract_dre_xlsx
 from transform import (
     padronizar_nomes_colunas,
@@ -36,7 +37,7 @@ def _mes_long(df: pd.DataFrame) -> pd.DataFrame:
     df_long["mes_num"] = df_long["mes"].map(MESES_MAP)
     return df_long
 
-def pipeline_dre(xlsx: str | Path, ano: int, empresa: str) -> pd.DataFrame:
+def pipeline_dre(xlsx: Union[str, Path, BinaryIO], ano: int, empresa: str) -> pd.DataFrame:
     # 1) extract
     df = extract_dre_xlsx(xlsx)
 
