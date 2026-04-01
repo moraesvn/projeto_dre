@@ -11,13 +11,13 @@ _STAGING_KEY = "_dre_import_staging"
 
 @st.dialog("Confirmar importação", width="medium")
 def dialog_confirmar_importacao() -> None:
-    st.markdown("Os dados existentes desta **empresa** e **ano** serão **substituídos** pelo conteúdo da planilha.")
+    st.markdown("Os dados existentes desta **empresa** e **ano** serão **substituídos** pelos novos dados.")
     s = st.session_state.get(_STAGING_KEY)
     if not s:
         st.info("Nenhuma importação pendente.")
         return
 
-    st.write(f"**Ficheiro:** {s['filename']}")
+    st.write(f"**Arquivo:** {s['filename']}")
     st.write(f"**Empresa:** {s['empresa']} | **Ano:** {s['ano']}")
     st.write(f"**Linhas a importar:** {len(s['df'])}")
 
@@ -43,9 +43,9 @@ st.header("Configurações")
 st.caption("Preferências e opções do aplicativo.")
 
 st.subheader("Importar DRE")
-st.caption("Envie a planilha com os 12 meses; escolha empresa (SP ou SC) e o ano de referência.")
+st.caption("Importe o arquivo Excel do DRE; escolha empresa (SP ou SC) e o ano de referência.")
 
-uploaded = st.file_uploader("Planilha (.xlsx)", type=["xlsx"], help="Formato esperado: o mesmo usado pelo pipeline ETL do projeto.")
+uploaded = st.file_uploader("Arquivo (.xlsx)", type=["xlsx"], help="Formato esperado: o mesmo usado pelo pipeline ETL do projeto.")
 
 col_a, col_b = st.columns(2)
 with col_a:
@@ -55,7 +55,7 @@ with col_b:
 
 if st.button("Importar dados", type="primary"):
     if uploaded is None:
-        st.warning("Selecione um ficheiro Excel (.xlsx).")
+        st.warning("Selecione um arquivo Excel (.xlsx).")
     else:
         ok_prep, err_prep, df = preparar_dados_upload(uploaded.getvalue(), int(ano), empresa)
         if not ok_prep or df is None:
