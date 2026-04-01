@@ -10,11 +10,12 @@ _APP_DIR = Path(__file__).resolve().parent
 _PROJECT_ROOT = _APP_DIR.parent
 _ETL_DIR = _PROJECT_ROOT / "etl"
 
+# Coloca a pasta `etl/` no path para `load`, `pipeline`, `extract`, `transform` importarem entre si.
 if str(_ETL_DIR) not in sys.path:
     sys.path.insert(0, str(_ETL_DIR))
 
-from etl.load import substituir_dre_periodo  # noqa: E402
-from etl.pipeline import pipeline_dre  # noqa: E402
+from load import substituir_dre_periodo  # noqa: E402
+from pipeline import pipeline_dre  # noqa: E402
 
 
 def preparar_dados_upload(
