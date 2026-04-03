@@ -3,7 +3,12 @@ import streamlit as st
 import altair as alt
 from dataclasses import dataclass
 from db import get_kpi_base
-from kpi import montar_kpis, serie_desp_op_sobre_receita_bruta_pct, medias_mensais_periodo
+from kpi import (
+    montar_kpis,
+    montar_metricas_deducoes,
+    serie_desp_op_sobre_receita_bruta_pct,
+    medias_mensais_periodo,
+)
 
 #st.set_page_config(page_title="Núcleo Financeiro", page_icon="💹", layout="wide")
 
@@ -70,6 +75,23 @@ with c1:
 with c2:
     rl = kpis["receita_liquida"]
     st.metric(rl.label, fmt_val(rl.valor))
+
+ded = montar_metricas_deducoes(df_base)
+_exp_label = (
+    f"(-) Deduções · Total {fmt_val(ded['total'])} · "
+    f"{fmt_pct(ded['pct_sobre_rb'])} da receita bruta · "
+    f"Média mensal {fmt_pct(ded['media_pct_mensal'])}"
+)
+with st.expander(_exp_label, expanded=False):
+    for item in ded["itens"]:
+        st.markdown(f"**{item['label']}**")
+        d1, d2, d3 = st.columns(3)
+        with d1:
+            st.metric("Total", fmt_val(item["total"]))
+        with d2:
+            st.metric("% sobre receita bruta", fmt_pct(item["pct_sobre_rb"]))
+        with d3:
+            st.metric("Média mensal %", fmt_pct(item["media_pct_mensal"]))
 
 st.divider()
 

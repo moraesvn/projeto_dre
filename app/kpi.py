@@ -4,6 +4,17 @@ from dataclasses import dataclass
 RB = "RECEITA BRUTA"
 RL = "RECEITA LIQUIDA"
 DESP_OP = "DESPESAS OPERACIONAIS"
+
+# Linhas que compõem (-) Deduções (chaves = descricao após normalização em get_kpi_base).
+DEDUCOES_ITENS: tuple[tuple[str, str], ...] = (
+    ("DEVOLUCOES", "Devoluções"),
+    ("IMPOSTOS", "Impostos"),
+    ("ESTORNO DE IMPOSTOS DE DEVOLUCOES", "Estorno de impostos de devoluções"),
+    ("INTERMEDIACAO DE VENDA", "Intermediação de venda"),
+    ("SERVICO TRANSPORTE", "Serviço transporte"),
+    ("PUBLICIDADE", "Publicidade"),
+)
+_DEDUCOES_KEYS = [k for k, _ in DEDUCOES_ITENS]
 _MESES_ABREV = {
     1: "Jan", 2: "Fev", 3: "Mar", 4: "Abr", 5: "Mai", 6: "Jun",
     7: "Jul", 8: "Ago", 9: "Set", 10: "Out", 11: "Nov", 12: "Dez",
@@ -93,6 +104,123 @@ def montar_kpis(df_base: pd.DataFrame) -> dict:
     return {
         "receita_bruta": kpi_receita_bruta(frames),
         "receita_liquida": kpi_receita_liquida(frames),
+    }
+
+
+def _attrs_periodo(df_base: pd.DataFrame) -> tuple[list[int], int, int]:
+    mes_ini = int(df_base.attrs.get("mes_ini", 1))
+    mes_fim = int(df_base.attrs.get("mes_fim", 12))
+    anos_sel = df_base.attrs.get("anos_sel")
+    if anos_sel is None:
+        anos_sel = [int(df_base.attrs.get("ref_year"))]
+    else:
+        anos_sel = sorted({int(x) for x in anos_sel})
+    return anos_sel, mes_ini, mes_fim
+
+
+def _pivot_rb_e_deducoes_mensais(
+    df_base: pd.DataFrame, chaves_ded: list[str]
+) -> pd.DataFrame:
+    """Uma linha por (ano, mes_num) com colunas RECEITA BRUTA e cada chave de dedução."""
+    anos_sel, mes_ini, mes_fim = _attrs_periodo(df_base)
+    cols = [RB] + chaves_ded
+    d = df_base[
+        df_base["ano"].isin(anos_sel)
+        & (df_base["mes_num"] >= mes_ini)
+        & (df_base["mes_num"] <= mes_fim)
+        & df_base["descricao"].isin(cols)
+    ]
+    if d.empty:
+        return pd.DataFrame()
+    pt = d.pivot_table(
+        index=["ano", "mes_num"], columns="descricao", values="valor", aggfunc="sum"
+    ).reset_index()
+    for col in cols:
+        if col not in pt.columns:
+            pt[col] = 0.0
+    return pt
+
+
+def _media_pct_mensal_sobre_rb(serie_ded_mensal: pd.Series, serie_rb: pd.Series) -> float | None:
+    rb = serie_rb.astype(float)
+    ded = serie_ded_mensal.astype(float)
+    ok = rb.abs() > 1e-9
+    if not ok.any():
+        return None
+    pct = pd.Series(float("nan"), index=ded.index, dtype=float)
+    pct.loc[ok] = (ded.loc[ok] / rb.loc[ok]) * 100.0
+    m = pct.mean()
+    return float(m) if pd.notna(m) else None
+
+
+def montar_metricas_deducoes(df_base: pd.DataFrame) -> dict:
+    """
+    Totais no mesmo recorte temporal dos KPIs (curr_period em split_periods).
+    pct_sobre_rb: total deduções / receita bruta do período × 100.
+    media_pct_mensal: média dos (deduções_mês / RB_mês × 100) nos meses do filtro.
+    """
+    if df_base.empty:
+        return {
+            "total": 0.0,
+            "pct_sobre_rb": None,
+            "media_pct_mensal": None,
+            "itens": [
+                {
+                    "key": key,
+                    "label": lbl,
+                    "total": 0.0,
+                    "pct_sobre_rb": None,
+                    "media_pct_mensal": None,
+                }
+                for key, lbl in DEDUCOES_ITENS
+            ],
+        }
+
+    frames = split_periods(df_base)
+    rb_periodo = _sum(frames.curr_period, RB)
+
+    totais_por_chave: dict[str, float] = {}
+    for key, _lbl in DEDUCOES_ITENS:
+        totais_por_chave[key] = _sum(frames.curr_period, key)
+
+    total_ded = float(sum(totais_por_chave.values()))
+    pct_sobre_rb = None
+    if abs(rb_periodo) > 1e-9:
+        pct_sobre_rb = (total_ded / rb_periodo) * 100.0
+
+    pt = _pivot_rb_e_deducoes_mensais(df_base, _DEDUCOES_KEYS)
+    media_pct_total = None
+    if not pt.empty and RB in pt.columns:
+        ded_m = pt[_DEDUCOES_KEYS].sum(axis=1)
+        media_pct_total = _media_pct_mensal_sobre_rb(ded_m, pt[RB])
+
+    itens: list[dict] = []
+    for key, lbl in DEDUCOES_ITENS:
+        t = totais_por_chave[key]
+        p_rb = (t / rb_periodo * 100.0) if abs(rb_periodo) > 1e-9 else None
+        media_cat = None
+        if not pt.empty and RB in pt.columns:
+            col = (
+                pt[key]
+                if key in pt.columns
+                else pd.Series(0.0, index=pt.index, dtype=float)
+            )
+            media_cat = _media_pct_mensal_sobre_rb(col, pt[RB])
+        itens.append(
+            {
+                "key": key,
+                "label": lbl,
+                "total": t,
+                "pct_sobre_rb": p_rb,
+                "media_pct_mensal": media_cat,
+            }
+        )
+
+    return {
+        "total": total_ded,
+        "pct_sobre_rb": pct_sobre_rb,
+        "media_pct_mensal": media_pct_total,
+        "itens": itens,
     }
 
 
