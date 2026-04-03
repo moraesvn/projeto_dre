@@ -82,7 +82,10 @@ _exp_label = (
     f"{fmt_pct(ded['pct_sobre_rb'])} da receita bruta · "
     f"Média mensal {fmt_pct(ded['media_pct_mensal'])}"
 )
-with st.expander(_exp_label, expanded=False):
+
+st.divider()
+
+with st.expander(_exp_label, expanded=False, width=None):
     for item in ded["itens"]:
         st.markdown(f"**{item['label']}**")
         d1, d2, d3 = st.columns(3)
