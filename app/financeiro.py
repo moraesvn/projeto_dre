@@ -85,7 +85,7 @@ _exp_label = (
 
 st.divider()
 
-with st.expander(_exp_label, expanded=False, width=500):
+with st.expander(_exp_label, expanded=False):
     for item in ded["itens"]:
         st.markdown(f"**{item['label']}**")
         d1, d2, d3 = st.columns(3)
